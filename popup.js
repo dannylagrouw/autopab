@@ -3,8 +3,10 @@ let rowElements; // TODO brr
 let rows;
 
 const F_STATUS = 0;
+const F_BRICKLINK_ITEM_NO = 1;
 const F_ID = 2;
 const F_DESC = 4;
+const F_BRICKLINK_COLOR_ID = 5;
 const F_COLOR = 7;
 const F_QUANTITY = 9;
 
@@ -17,7 +19,6 @@ function handleContentResponse(response) {
     rowElements[response.index].firstChild.innerText = response.content;
     rows[response.index + 1][F_STATUS] = response.content;
     chrome.storage.local.set({parts: rows});
-    window.localStorage.setItem('nl.vollo.autopab.parts', JSON.stringify(rows));
     const next = document.querySelector('#parts table tr:nth-child(' + (response.index + 3) + ') td:nth-child(2) a');
     if (next) {
         console.log('buying next', next.innerHTML);
@@ -50,23 +51,25 @@ function createRow(index, fields) {
     return row;
 }
 
-document.removeEventListener('DOMContentLoaded', initialize2);
-
-document.addEventListener('DOMContentLoaded', initialize2);
-
-function initialize2(event) {
-    console.log('initialize2', event);
-    document.removeEventListener('DOMContentLoaded', initialize2);
+function downloadRest() {
+    const xml = '<INVENTORY>' +
+        rows.filter((fields, index) => !fields[F_STATUS].startsWith('bought') && index > 0)
+            .map(fields => `<ITEM><ITEMTYPE>P</ITEMTYPE><ITEMID>${fields[F_BRICKLINK_ITEM_NO]}</ITEMID><COLOR>${fields[F_BRICKLINK_COLOR_ID]}</COLOR><MINQTY>${fields[F_QUANTITY]}</MINQTY></ITEM>`)
+            .join('\n') +
+        '</INVENTORY>';
+    const url = 'data:application/xml,' + xml;
+    chrome.downloads.download({ url: url, filename: 'bricklink-wanted.xml', conflictAction: 'uniquify', saveAs: false });
 }
+
+document.addEventListener('DOMContentLoaded', initialize);
 
 function initialize() {
     const buyAllButton = document.getElementById('buyAll');
     const fileElement = document.getElementById("file_upload");
+    const downloadRestButton = document.getElementById('downloadRest');
 
     console.log('initialize');
 
-    const rows2 = window.localStorage.getItem('nl.vollo.autopab.parts');
-    console.log('rows2', rows2);
     chrome.storage.local.get(['parts'], result => {
         console.log('got from storage', result);
         rows = result.parts;
@@ -84,7 +87,6 @@ function initialize() {
                 rows = initStatusFields(csvToArray(content));
                 rows.length -= 4;
                 chrome.storage.local.set({parts: rows});
-                window.localStorage.setItem('nl.vollo.autopab.parts', JSON.stringify(rows));
                 displayRows(rows);
             });
         } else {
@@ -94,8 +96,15 @@ function initialize() {
     });
 
     buyAllButton.addEventListener('click', function() {
-        buy('6328180', 3, 0);
+        const first = document.querySelector('#parts table tr:nth-child(2) td:nth-child(2) a');
+        if (first) {
+            first.click();
+        } else {
+            setError('No parts loaded');
+        }
     }, false);
+
+    downloadRestButton.addEventListener('click', downloadRest);
 
     document.removeEventListener('DOMContentLoaded', initialize);
 }
