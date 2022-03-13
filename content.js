@@ -4,11 +4,9 @@ function clickPlus(iteration, times, sendResponse) {
         for (let i = 0; i < times; i++) {
             plus.click();
         }
-        sendResponse('bought ' + times);
+        sendResponse('bought ' + (times + 1));
     } else if (iteration < 10) {
-        setTimeout(() => {
-            clickPlus(iteration + 1, times, sendResponse);
-        }, 300);
+        setTimeout(() => clickPlus(iteration + 1, times, sendResponse), 300);
     } else {
         sendResponse('no plus button');
     }
@@ -28,7 +26,7 @@ function clickBuy(iteration, quantity, sendResponse) {
             sendResponse('bought 1');
         }
     } else if (iteration < 10) {
-        clickBuy(iteration + 1, quantity, sendResponse);
+        setTimeout(() => clickBuy(iteration + 1, quantity, sendResponse), 300);
     } else {
         sendResponse('no buy button');
     }
@@ -37,7 +35,7 @@ function clickBuy(iteration, quantity, sendResponse) {
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     console.log('got msg', msg);
     if (msg.text === 'buy') {
-        clickBuy(1, msg.quantity, sendResponse);
+        clickBuy(1, msg.quantity, function(content) { sendResponse({content, index: msg.index}) });
     }
     return true;
 });
