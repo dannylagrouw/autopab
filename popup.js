@@ -15,8 +15,16 @@ function setError(msg) {
 function handleContentResponse(response) {
     console.log('received: ' + response.content + ' for ' + response.index);
     rowElements[response.index].firstChild.innerText = response.content;
-    rows[response.index][F_STATUS] = response.content;
+    rows[response.index + 1][F_STATUS] = response.content;
     chrome.storage.local.set({parts: rows});
+    window.localStorage.setItem('nl.vollo.autopab.parts', JSON.stringify(rows));
+    const next = document.querySelector('#parts table tr:nth-child(' + (response.index + 3) + ') td:nth-child(2) a');
+    if (next) {
+        console.log('buying next', next.innerHTML);
+        next.click();
+    } else {
+        // done
+    }
 }
 
 function createCell(index, text) {
@@ -42,17 +50,33 @@ function createRow(index, fields) {
     return row;
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.removeEventListener('DOMContentLoaded', initialize2);
+
+document.addEventListener('DOMContentLoaded', initialize2);
+
+function initialize2(event) {
+    console.log('initialize2', event);
+    document.removeEventListener('DOMContentLoaded', initialize2);
+}
+
+function initialize() {
     const buyAllButton = document.getElementById('buyAll');
     const fileElement = document.getElementById("file_upload");
 
+    console.log('initialize');
+
+    const rows2 = window.localStorage.getItem('nl.vollo.autopab.parts');
+    console.log('rows2', rows2);
     chrome.storage.local.get(['parts'], result => {
         console.log('got from storage', result);
         rows = result.parts;
-        displayRows(rows);
+        if (rows) {
+            displayRows(rows);
+        }
     });
 
     fileElement.addEventListener("change", (event) => {
+        console.log('change detected', event);
         const file = fileElement.files[0];
         if (file.type === 'text/csv') {
             console.log(file.name);
@@ -60,6 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 rows = initStatusFields(csvToArray(content));
                 rows.length -= 4;
                 chrome.storage.local.set({parts: rows});
+                window.localStorage.setItem('nl.vollo.autopab.parts', JSON.stringify(rows));
                 displayRows(rows);
             });
         } else {
@@ -71,7 +96,9 @@ document.addEventListener('DOMContentLoaded', function() {
     buyAllButton.addEventListener('click', function() {
         buy('6328180', 3, 0);
     }, false);
-}, false);
+
+    document.removeEventListener('DOMContentLoaded', initialize);
+}
 
 function buy(part, quantity, index) {
     chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
