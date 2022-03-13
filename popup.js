@@ -14,18 +14,31 @@ function setError(msg) {
     document.getElementById('error').innerText = msg;
 }
 
+function buyNext(index) {
+    const nextStatus = document.querySelector('#parts table tr:nth-child(' + index + ') td:nth-child(1)');
+    const next = document.querySelector('#parts table tr:nth-child(' + index + ') td:nth-child(2) a');
+    if (next) {
+        if (next.innerText === '') {
+            console.log('no part no, trying next');
+            buyNext(index + 1);
+        } else if (nextStatus.innerText.startsWith('bought')) {
+            console.log('already bought, trying next');
+            buyNext(index + 1);
+        } else {
+            console.log('buying next', next.innerHTML);
+            next.click();
+        }
+    } else {
+        // done
+    }
+}
+
 function handleContentResponse(response) {
     console.log('received: ' + response.content + ' for ' + response.index);
     rowElements[response.index].firstChild.innerText = response.content;
     rows[response.index + 1][F_STATUS] = response.content;
     chrome.storage.local.set({parts: rows});
-    const next = document.querySelector('#parts table tr:nth-child(' + (response.index + 3) + ') td:nth-child(2) a');
-    if (next) {
-        console.log('buying next', next.innerHTML);
-        next.click();
-    } else {
-        // done
-    }
+    buyNext(response.index + 3);
 }
 
 function createCell(index, text) {
@@ -51,7 +64,7 @@ function createRow(index, fields) {
     return row;
 }
 
-function downloadRest() {
+function downloadRestXml() {
     const xml = '<INVENTORY>' +
         rows.filter((fields, index) => !fields[F_STATUS].startsWith('bought') && index > 0)
             .map(fields => `<ITEM><ITEMTYPE>P</ITEMTYPE><ITEMID>${fields[F_BRICKLINK_ITEM_NO]}</ITEMID><COLOR>${fields[F_BRICKLINK_COLOR_ID]}</COLOR><MINQTY>${fields[F_QUANTITY]}</MINQTY></ITEM>`)
@@ -61,13 +74,19 @@ function downloadRest() {
     chrome.downloads.download({ url: url, filename: 'bricklink-wanted.xml', conflictAction: 'uniquify', saveAs: false });
 }
 
+function downloadRestCsv() {
+    const xml = rows.filter(fields => !fields[F_STATUS].startsWith('bought'))
+            .map(fields => fields.filter((field, index) => index > 0).map(field => field.indexOf(',') === -1 ? field : '"' + field + '"').join(','))
+            .join('\n');
+    const url = 'data:text/csv,' + xml;
+    chrome.downloads.download({ url: url, filename: 'parts.csv', conflictAction: 'uniquify', saveAs: false });
+}
+
 document.addEventListener('DOMContentLoaded', initialize);
 
 function initialize() {
     const buyAllButton = document.getElementById('buyAll');
     const fileElement = document.getElementById("file_upload");
-    const downloadRestButton = document.getElementById('downloadRest');
-
     console.log('initialize');
 
     chrome.storage.local.get(['parts'], result => {
@@ -104,7 +123,8 @@ function initialize() {
         }
     }, false);
 
-    downloadRestButton.addEventListener('click', downloadRest);
+    document.getElementById('downloadRest').addEventListener('click', downloadRestXml);
+    document.getElementById('downloadRestCsv').addEventListener('click', downloadRestCsv);
 
     document.removeEventListener('DOMContentLoaded', initialize);
 }
