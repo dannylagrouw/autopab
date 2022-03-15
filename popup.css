@@ -1,8 +1,46 @@
+html, body {
+    padding: 0;
+    margin: 0;
+}
+
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
 body {
-    width: 780px;
-    height: 580px;
+    width: 760px;
+    height: 560px;
+    max-height: 560px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+#title {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
 }
 
 #buyAll {
     display: none;
+}
+
+#parts {
+    flex-grow: 1;
+    overflow-y: scroll;
+}
+
+td {
+    height: 1.313rem;
+}
+
+tr.even {
+    background-color: #eee;
+}
+
+tr.odd {
+    background-color: #ccc;
 }

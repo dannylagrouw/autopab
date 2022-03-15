@@ -15,30 +15,32 @@ function setError(msg) {
 }
 
 function buyNext(index) {
-    const nextStatus = document.querySelector('#parts table tr:nth-child(' + index + ') td:nth-child(1)');
-    const next = document.querySelector('#parts table tr:nth-child(' + index + ') td:nth-child(2) a');
-    if (next) {
-        if (next.innerText === '') {
+    if (index < rows.length) {
+        const fields = rows[index];
+        const status = fields[F_STATUS];
+        if (status === '') {
             console.log('no part no, trying next');
             buyNext(index + 1);
-        } else if (nextStatus.innerText.startsWith('bought')) {
+        } else if (status.startsWith('bought')) {
             console.log('already bought, trying next');
             buyNext(index + 1);
         } else {
-            console.log('buying next', next.innerHTML);
-            next.click();
+            console.log('buying next', fields);
+            buy(fields[F_ID], fields[F_QUANTITY], index, true);
         }
     } else {
-        // done
+        console.log('done');
     }
 }
 
 function handleContentResponse(response) {
-    console.log('received: ' + response.content + ' for ' + response.index);
+    console.log('received:', response);
     rowElements[response.index].firstChild.innerText = response.content;
-    rows[response.index + 1][F_STATUS] = response.content;
+    rows[response.index][F_STATUS] = response.content;
     chrome.storage.local.set({parts: rows});
-    buyNext(response.index + 3);
+    if (response.buyAll) {
+        buyNext(response.index + 1);
+    }
 }
 
 function createCell(index, text) {
@@ -49,19 +51,45 @@ function createCell(index, text) {
 
 function createRow(index, fields) {
     const row = document.createElement('tr');
+    if (index > 0) {
+        if (index % 2 === 0) {
+            row.classList.add('even');
+        } else {
+            row.classList.add('odd');
+        }
+    }
+    row.dataset['index'] = index;
     if (index === 0) {
         row.appendChild(createCell(index, 'Status'));
         row.appendChild(createCell(index, fields[F_ID]));
     } else {
         row.appendChild(createCell(index, fields[F_STATUS]));
         const link = createCell(index, '<a href="#">' + fields[F_ID] + '</a>');
-        link.addEventListener('click', () => buy(fields[F_ID], fields[F_QUANTITY], index - 1));
+        link.addEventListener('click', () => {
+            chrome.tabs.update({ url: 'https://www.lego.com/nl-nl/page/static/pick-a-brick?query=' + fields[F_ID] });
+        });
         row.appendChild(link);
     }
     row.appendChild(createCell(index, fields[F_DESC]));
     row.appendChild(createCell(index, fields[F_COLOR]));
     row.appendChild(createCell(index, fields[F_QUANTITY]));
+    if (index === 0 && rows.length > 1) {
+        row.appendChild(createButton(index, 'Buy All', () => buy(rows[1][F_ID], rows[1][F_QUANTITY], 1, true)));
+    } else if (index !== 0 && fields[F_ID]) {
+        row.appendChild(createButton(index, 'Buy', () => buy(fields[F_ID], fields[F_QUANTITY], index, false)));
+    } else {
+        row.appendChild(createCell(index, '&nbsp;'));
+    }
     return row;
+}
+
+function createButton(index, label, handler) {
+    const btn = document.createElement('button');
+    btn.innerHTML = label;
+    btn.addEventListener('click', handler);
+    const cell = document.createElement('td');
+    cell.appendChild(btn);
+    return cell;
 }
 
 function downloadRestXml() {
@@ -85,7 +113,6 @@ function downloadRestCsv() {
 document.addEventListener('DOMContentLoaded', initialize);
 
 function initialize() {
-    const buyAllButton = document.getElementById('buyAll');
     const fileElement = document.getElementById("file_upload");
     console.log('initialize');
 
@@ -114,22 +141,13 @@ function initialize() {
         }
     });
 
-    buyAllButton.addEventListener('click', function() {
-        const first = document.querySelector('#parts table tr:nth-child(2) td:nth-child(2) a');
-        if (first) {
-            first.click();
-        } else {
-            setError('No parts loaded');
-        }
-    }, false);
-
     document.getElementById('downloadRest').addEventListener('click', downloadRestXml);
     document.getElementById('downloadRestCsv').addEventListener('click', downloadRestCsv);
 
     document.removeEventListener('DOMContentLoaded', initialize);
 }
 
-function buy(part, quantity, index) {
+function buy(part, quantity, index, buyAll) {
     chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
         const tab = tabs[0];
 
@@ -140,7 +158,7 @@ function buy(part, quantity, index) {
                 chrome.tabs.query({currentWindow: true, active: true}, function (reloadeds) {
                     const reloaded = reloadeds[0];
                     console.log('sending buy', reloaded);
-                    const sent = chrome.tabs.sendMessage(reloaded.id, {text: 'buy', quantity, index}, handleContentResponse);
+                    const sent = chrome.tabs.sendMessage(reloaded.id, {text: 'buy', quantity, index, buyAll}, handleContentResponse);
                     console.log('sent', sent);
                     chrome.tabs.onUpdated.removeListener(listener);
                 });
@@ -154,23 +172,19 @@ function buy(part, quantity, index) {
 }
 
 function displayRows(rows) {
-    const buyAllButton = document.getElementById('buyAll');
     const partsElement = document.getElementById('parts');
 
     rowElements = [];
     if (partsElement.firstChild) {
         partsElement.removeChild(partsElement.firstChild);
     }
-    const table = document.createElement('table')
+    const table = document.createElement('table');
     rows.forEach((fields, index) => {
         const row = createRow(index, fields);
         table.appendChild(row);
-        if (index > 0) {
-            rowElements.push(row);
-        }
+        rowElements.push(row);
     });
     partsElement.appendChild(table);
-    buyAllButton.style.display = 'block';
 }
 
 function initStatusFields(rows) {
