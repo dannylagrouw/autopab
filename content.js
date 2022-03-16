@@ -10,6 +10,10 @@ function getPlusBtn() {
     return document.querySelector('button[data-test=quantity-increase-cta]');
 }
 
+function getLoggedInLink() {
+    return document.querySelector('a[data-test=header-account-cta]');
+}
+
 function clickPlus(iteration, times, sendResponse) {
     const plusBtn = getPlusBtn();
     if (plusBtn) {
@@ -51,6 +55,8 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     console.log('got msg', msg);
     if (msg.text === 'buy') {
         clickBuy(1, msg.quantity, function(content) { sendResponse({content, index: msg.index, buyAll: msg.buyAll}) });
+    } else if (msg.text === 'loggedin') {
+        sendResponse({loggedin: !!getLoggedInLink()});
     }
     return true;
 });

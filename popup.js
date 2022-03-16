@@ -10,8 +10,18 @@ const F_BRICKLINK_COLOR_ID = 5;
 const F_COLOR = 7;
 const F_QUANTITY = 9;
 
+function getProgressBar() {
+    return document.getElementById('progressBar');
+}
+
 function setError(msg) {
-    document.getElementById('error').innerText = msg;
+    const errorElement = document.getElementById('error');
+    if (msg) {
+        errorElement.style.display = 'initial';
+        errorElement.innerText = msg;
+    } else {
+        errorElement.style.display = 'none';
+    }
 }
 
 function buyNext(index) {
@@ -30,11 +40,15 @@ function buyNext(index) {
         }
     } else {
         console.log('done');
+        setTimeout(() => {
+            getProgressBar().style.display = 'none';
+        }, 5000);
     }
 }
 
 function handleContentResponse(response) {
     console.log('received:', response);
+    getProgressBar().style.width = (response.index * 100 / (rows.length - 1)) + '%';
     rowElements[response.index].firstChild.innerText = response.content;
     rows[response.index][F_STATUS] = response.content;
     chrome.storage.local.set({parts: rows});
@@ -74,7 +88,11 @@ function createRow(index, fields) {
     row.appendChild(createCell(index, fields[F_COLOR]));
     row.appendChild(createCell(index, fields[F_QUANTITY]));
     if (index === 0 && rows.length > 1) {
-        row.appendChild(createButton(index, 'Buy All', () => buy(rows[1][F_ID], rows[1][F_QUANTITY], 1, true)));
+        row.appendChild(createButton(index, 'Buy All', () => {
+            getProgressBar().style.display = 'initial';
+            getProgressBar().style.width = '0';
+            buy(rows[1][F_ID], rows[1][F_QUANTITY], 1, true);
+        }));
     } else if (index !== 0 && fields[F_ID]) {
         row.appendChild(createButton(index, 'Buy', () => buy(fields[F_ID], fields[F_QUANTITY], index, false)));
     } else {
@@ -110,6 +128,19 @@ function downloadRestCsv() {
     chrome.downloads.download({ url: url, filename: 'parts.csv', conflictAction: 'uniquify', saveAs: false });
 }
 
+function checkLoggedIn() {
+    chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
+        const tab = tabs[0];
+        console.log('send loggedin to', tab.status);
+        chrome.tabs.sendMessage(tab.id, {text: 'loggedin'}, (response) => {
+            console.log('response', response);
+            if (!response.loggedin) {
+                setError('This plugin only works when you\'re on lego.com and logged in to your account');
+            }
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', initialize);
 
 function initialize() {
@@ -121,6 +152,7 @@ function initialize() {
         rows = result.parts;
         if (rows) {
             displayRows(rows);
+            document.getElementById('progressBar').style.width = (300 / (rows.length - 1)) + '%';
         }
     });
 
@@ -128,6 +160,7 @@ function initialize() {
         console.log('change detected', event);
         const file = fileElement.files[0];
         if (file.type === 'text/csv') {
+            setError();
             console.log(file.name);
             file.text().then((content) => {
                 rows = initStatusFields(csvToArray(content));
