@@ -28,7 +28,7 @@ function buyNext(index) {
     if (index < rows.length) {
         const fields = rows[index];
         const status = fields[F_STATUS];
-        if (status === '') {
+        if (fields[F_ID] === '') {
             console.log('no part no, trying next');
             buyNext(index + 1);
         } else if (status.startsWith('bought')) {
@@ -89,7 +89,7 @@ function createRow(index, fields) {
     row.appendChild(createCell(index, fields[F_QUANTITY]));
     if (index === 0 && rows.length > 1) {
         row.appendChild(createButton(index, 'Buy All', () => {
-            getProgressBar().style.display = 'initial';
+            getProgressBar().style.display = 'block';
             getProgressBar().style.width = '0';
             buy(rows[1][F_ID], rows[1][F_QUANTITY], 1, true);
         }));

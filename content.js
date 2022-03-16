@@ -39,8 +39,10 @@ function clickBuy(iteration, quantity, sendResponse) {
             setTimeout(() => {
                 clickPlus(1, quantity - 1, sendResponse);
             }, 300);
-        } else {
+        } else if (getQuantity()) {
             sendResponse('bought ' + getQuantity().value);
+        } else {
+            sendResponse('bought 1');
         }
     } else if (plusBtn) {
         clickPlus(1, quantity, sendResponse);
