@@ -30,13 +30,13 @@ body {
 }
 
 #progress {
+    display: none;
     width: 400px;
     height: 23px;
     border: 1px solid green;
 }
 
 #progressBar {
-    display: none;
     width: 0;
     height: 23px;
     background-color: #10ef10;
@@ -61,8 +61,21 @@ body {
     overflow-y: scroll;
 }
 
+th {
+    text-align: left;
+    padding: 4px;
+    border-bottom: 1px solid black;
+}
+
 td {
     height: 1.313rem;
+    vertical-align: top;
+    padding: 4px;
+    border-bottom: 2px solid white;
+}
+
+td:nth-child(6) {
+    width: 70px;
 }
 
 tr.even {

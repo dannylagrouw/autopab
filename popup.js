@@ -10,6 +10,10 @@ const F_BRICKLINK_COLOR_ID = 5;
 const F_COLOR = 7;
 const F_QUANTITY = 9;
 
+function getProgress() {
+    return document.getElementById('progress');
+}
+
 function getProgressBar() {
     return document.getElementById('progressBar');
 }
@@ -41,7 +45,7 @@ function buyNext(index) {
     } else {
         console.log('done');
         setTimeout(() => {
-            getProgressBar().style.display = 'none';
+            getProgress().style.display = 'none';
         }, 5000);
     }
 }
@@ -80,7 +84,7 @@ function createRow(index, fields) {
         row.appendChild(createCell(index, fields[F_STATUS]));
         const link = createCell(index, '<a href="#">' + fields[F_ID] + '</a>');
         link.addEventListener('click', () => {
-            chrome.tabs.update({ url: 'https://www.lego.com/nl-nl/page/static/pick-a-brick?query=' + fields[F_ID] });
+            chrome.tabs.update({ url: 'https://www.lego.com/page/static/pick-a-brick?query=' + fields[F_ID] });
         });
         row.appendChild(link);
     }
@@ -89,14 +93,16 @@ function createRow(index, fields) {
     row.appendChild(createCell(index, fields[F_QUANTITY]));
     if (index === 0 && rows.length > 1) {
         row.appendChild(createButton(index, 'Buy All', () => {
-            getProgressBar().style.display = 'block';
+            getProgress().style.display = 'block';
             getProgressBar().style.width = '0';
             buy(rows[1][F_ID], rows[1][F_QUANTITY], 1, true);
         }));
     } else if (index !== 0 && fields[F_ID]) {
         row.appendChild(createButton(index, 'Buy', () => buy(fields[F_ID], fields[F_QUANTITY], index, false)));
     } else {
-        row.appendChild(createCell(index, '&nbsp;'));
+        row.appendChild(createButton(index, 'Search', () => {
+            chrome.tabs.update({ url: 'https://www.lego.com/page/static/pick-a-brick?query=' + fields[F_DESC] });
+        }));
     }
     return row;
 }
@@ -105,7 +111,7 @@ function createButton(index, label, handler) {
     const btn = document.createElement('button');
     btn.innerHTML = label;
     btn.addEventListener('click', handler);
-    const cell = document.createElement('td');
+    const cell = document.createElement(index === 0 ? 'th' : 'td');
     cell.appendChild(btn);
     return cell;
 }
@@ -126,19 +132,6 @@ function downloadRestCsv() {
             .join('\n');
     const url = 'data:text/csv,' + xml;
     chrome.downloads.download({ url: url, filename: 'parts.csv', conflictAction: 'uniquify', saveAs: false });
-}
-
-function checkLoggedIn() {
-    chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
-        const tab = tabs[0];
-        console.log('send loggedin to', tab.status);
-        chrome.tabs.sendMessage(tab.id, {text: 'loggedin'}, (response) => {
-            console.log('response', response);
-            if (!response.loggedin) {
-                setError('This plugin only works when you\'re on lego.com and logged in to your account');
-            }
-        });
-    });
 }
 
 document.addEventListener('DOMContentLoaded', initialize);
@@ -200,7 +193,7 @@ function buy(part, quantity, index, buyAll) {
 
         chrome.tabs.onUpdated.addListener(listener);
 
-        chrome.tabs.update(tab.id, { url: 'https://www.lego.com/nl-nl/page/static/pick-a-brick?query=' + part });
+        chrome.tabs.update(tab.id, { url: 'https://www.lego.com/page/static/pick-a-brick?query=' + part });
     });
 }
 
@@ -221,7 +214,7 @@ function displayRows(rows) {
 }
 
 function initStatusFields(rows) {
-    return rows.map(row => ['new', ...row]);
+    return rows.map(row => [row[F_ID - 1] === '' ? 'ignored' : 'new', ...row]);
 }
 
 function csvToArray(text) {
