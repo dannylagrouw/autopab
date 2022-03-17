@@ -1,5 +1,5 @@
 console = chrome.extension.getBackgroundPage().console;
-let rowElements; // TODO brr
+let rowElements;
 let rows;
 let stopBuying = false;
 
