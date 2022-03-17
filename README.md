@@ -3,6 +3,8 @@
 With this extension you can load a PartsList CSV file exported from BrickLink Studio,
 and automatically have all items added to your Pick A Brick list on LEGO.com.
 
+<img width="718" alt="image" src="https://user-images.githubusercontent.com/149731/158898355-eb8f9fec-9b6a-4673-82d1-bde6d30ad0b1.png">
+
 ## How to use
 
 * Click "Choose file" and select a PartsList CSV file exported from BrickLink Studio.
