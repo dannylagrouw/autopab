@@ -1,6 +1,7 @@
 console = chrome.extension.getBackgroundPage().console;
 let rowElements; // TODO brr
 let rows;
+let stopBuying = false;
 
 const F_STATUS = 0;
 const F_BRICKLINK_ITEM_NO = 1;
@@ -11,11 +12,15 @@ const F_COLOR = 7;
 const F_QUANTITY = 9;
 
 function getProgress() {
-    return document.getElementById('progress');
+    return document.getElementById('progressWrapper');
 }
 
 function getProgressBar() {
     return document.getElementById('progressBar');
+}
+
+function getDownloadMenu() {
+    return document.getElementById('downloadMenu');
 }
 
 function setError(msg) {
@@ -29,7 +34,8 @@ function setError(msg) {
 }
 
 function buyNext(index) {
-    if (index < rows.length) {
+    console.log('stopBuying', stopBuying);
+    if (index < rows.length && !stopBuying) {
         const fields = rows[index];
         const status = fields[F_STATUS];
         if (fields[F_ID] === '') {
@@ -44,8 +50,9 @@ function buyNext(index) {
         }
     } else {
         console.log('done');
+        stopBuying = false;
         setTimeout(() => {
-            getProgress().style.display = 'none';
+            getProgress().style.visibility = 'hidden';
         }, 5000);
     }
 }
@@ -93,7 +100,7 @@ function createRow(index, fields) {
     row.appendChild(createCell(index, fields[F_QUANTITY]));
     if (index === 0 && rows.length > 1) {
         row.appendChild(createButton(index, 'Buy All', () => {
-            getProgress().style.display = 'block';
+            getProgress().style.visibility = 'visible';
             getProgressBar().style.width = '0';
             buy(rows[1][F_ID], rows[1][F_QUANTITY], 1, true);
         }));
@@ -117,6 +124,7 @@ function createButton(index, label, handler) {
 }
 
 function downloadRestXml() {
+    getDownloadMenu().style.visibility = 'hidden';
     const xml = '<INVENTORY>' +
         rows.filter((fields, index) => !fields[F_STATUS].startsWith('bought') && index > 0)
             .map(fields => `<ITEM><ITEMTYPE>P</ITEMTYPE><ITEMID>${fields[F_BRICKLINK_ITEM_NO]}</ITEMID><COLOR>${fields[F_BRICKLINK_COLOR_ID]}</COLOR><MINQTY>${fields[F_QUANTITY]}</MINQTY></ITEM>`)
@@ -127,6 +135,7 @@ function downloadRestXml() {
 }
 
 function downloadRestCsv() {
+    getDownloadMenu().style.visibility = 'hidden';
     const xml = rows.filter(fields => !fields[F_STATUS].startsWith('bought'))
             .map(fields => fields.filter((field, index) => index > 0).map(field => field.indexOf(',') === -1 ? field : '"' + field + '"').join(','))
             .join('\n');
@@ -167,6 +176,18 @@ function initialize() {
         }
     });
 
+    document.getElementById('stop').addEventListener('click', () => {
+        stopBuying = true;
+    });
+
+    document.getElementById('download').addEventListener('click', () => {
+        const downloadMenu = getDownloadMenu();
+        if (downloadMenu.style.display === 'block') {
+            downloadMenu.style.display = 'none';
+        } else {
+            downloadMenu.style.display = 'block';
+        }
+    });
     document.getElementById('downloadRest').addEventListener('click', downloadRestXml);
     document.getElementById('downloadRestCsv').addEventListener('click', downloadRestCsv);
 
@@ -199,11 +220,9 @@ function buy(part, quantity, index, buyAll) {
 
 function displayRows(rows) {
     const partsElement = document.getElementById('parts');
+    partsElement.innerHTML = '';
 
     rowElements = [];
-    if (partsElement.firstChild) {
-        partsElement.removeChild(partsElement.firstChild);
-    }
     const table = document.createElement('table');
     rows.forEach((fields, index) => {
         const row = createRow(index, fields);
@@ -211,6 +230,7 @@ function displayRows(rows) {
         rowElements.push(row);
     });
     partsElement.appendChild(table);
+    document.getElementById('downloadWrapper').style.visibility = 'visible';
 }
 
 function initStatusFields(rows) {

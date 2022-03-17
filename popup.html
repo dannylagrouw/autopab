@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Autopab</title>
+    <meta charset="utf-8">
     <script src="popup.js"></script>
     <link href="popup.css?v=3" rel="stylesheet">
 </head>
@@ -9,15 +10,62 @@
 <div id="title">
     <h1>Autopab</h1>
     <div id="titleRight">
-        <div id="progress"><div id="progressBar"></div></div>
+        <div id="progressWrapper">
+            <button id="stop" type="button">Stop</button>
+            <div id="progress"><div id="progressBar"></div></div>
+        </div>
         <div id="error"></div>
     </div>
 </div>
 <form id="form">
     <input type="file" id="file_upload">
-    <button id="downloadRest" type="button">Download Bricklink XML for missing parts</button>
-    <button id="downloadRestCsv" type="button">Download CSV for missing parts</button>
+    <div id="downloadWrapper">
+        <button id="download" type="button">Download ▼</button>
+        <div id="downloadMenu">
+            <ul>
+                <li>
+                    <a id="downloadRest" href="#">Download Bricklink XML for missing parts</a>
+                </li>
+                <li>
+                    <a id="downloadRestCsv" href="#">Download CSV for missing parts</a>
+                </li>
+            </ul>
+        </div>
+    </div>
 </form>
-<div id="parts"></div>
+<div id="parts">
+    <div id="intro">
+        <p>
+            With this extension you can load a PartsList CSV file exported from BrickLink Studio,
+            and automatically have all items added to your Pick A Brick list on LEGO.com.
+        </p>
+        <h3>How to use</h3>
+        <ul>
+            <li>
+                Click "Choose file" and select a PartsList CSV file exported from BrickLink Studio.
+            </li>
+            <li>
+                Click "Buy All" and watch the parts being added to the Pick A Brick list on LEGO.com.
+            </li>
+            <li>
+                Instead, you can also manually buy individual items by clicking their "Buy" button.
+            </li>
+            <li>
+                Afterwards, you can download a BrickLink XML file that can be used to create a wanted list,
+                containing any parts that could not be found on LEGO.com.
+            </li>
+            <li>
+                You can also download a CSV file (in the same format as the original file) containing any missing parts.
+            </li>
+        </ul>
+        <h3>DISCLAIMER</h3>
+        <p>
+            <b>Use this extension at your own risk!</b> The extension will only place items on your
+            Pick A Brick list, so nothing will actually be bought. Even so, the creator of this
+            extension is not responsible for anything happening as a result from using the extension.
+            Double-check your Pick A Brick list before adding it to your shopping cart.
+        </p>
+    </div>
+</div>
 </body>
 </html>
