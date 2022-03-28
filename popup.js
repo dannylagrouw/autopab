@@ -24,6 +24,10 @@ function getDownloadMenu() {
     return document.getElementById('downloadMenu');
 }
 
+function getFileName() {
+    return document.getElementById('fileName');
+}
+
 function setError(msg) {
     const errorElement = document.getElementById('error');
     if (msg) {
@@ -160,12 +164,18 @@ function initialize() {
     const fileElement = document.getElementById("file_upload");
     console.log('initialize');
 
+    chrome.storage.local.get(['fileName'], result => {
+        if (result.fileName) {
+            getFileName().innerText = result.fileName;
+        }
+    });
+
     chrome.storage.local.get(['parts'], result => {
         console.log('got from storage', result);
         rows = result.parts;
         if (rows) {
             displayRows(rows);
-            document.getElementById('progressBar').style.width = (300 / (rows.length - 1)) + '%';
+            getProgressBar().style.width = (300 / (rows.length - 1)) + '%';
         }
     });
 
@@ -173,6 +183,8 @@ function initialize() {
         console.log('change detected', event);
         const file = fileElement.files[0];
         if (file.type === 'text/csv') {
+            getFileName().innerText = file.name;
+            chrome.storage.local.set({fileName: file.name});
             setError();
             console.log(file.name);
             file.text().then((content) => {

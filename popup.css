@@ -25,6 +25,10 @@ body {
     align-items: baseline;
 }
 
+#title h1 {
+    margin-bottom: 0;
+}
+
 #titleRight {
     display: flex;
     flex-direction: column;
