@@ -6,6 +6,7 @@ let stopBuying = false;
 const F_STATUS = 0;
 const F_BRICKLINK_ITEM_NO = 1;
 const F_ID = 2;
+const F_DESIGN_ID = 3;
 const F_DESC = 4;
 const F_BRICKLINK_COLOR_ID = 5;
 const F_COLOR = 7;
@@ -74,6 +75,10 @@ function createCell(index, text) {
     return cell;
 }
 
+function legoQuery(query) {
+    chrome.tabs.update({ url: 'https://www.lego.com/page/static/pick-a-brick?query=' + query });
+}
+
 function createRow(index, fields) {
     const row = document.createElement('tr');
     if (index > 0) {
@@ -87,14 +92,22 @@ function createRow(index, fields) {
     if (index === 0) {
         row.appendChild(createCell(index, 'Status'));
         row.appendChild(createCell(index, fields[F_ID]));
+        row.appendChild(createCell(index, fields[F_DESIGN_ID]));
     } else {
         row.appendChild(createCell(index, fields[F_STATUS]));
-        const link = createCell(index, '<a href="#">' + fields[F_ID] + '</a>');
-        link.addEventListener('click', () => {
-            chrome.tabs.update({ url: 'https://www.lego.com/page/static/pick-a-brick?query=' + fields[F_ID] });
-        });
-        row.appendChild(link);
+        row.appendChild(
+            createCell(index, '<a href="#">' + fields[F_ID] + '</a>').run(link =>
+                link.addEventListener('click', () => legoQuery(fields[F_ID]))
+            )
+        );
+        row.appendChild(
+            createCell(index, '<a href="#">' + fields[F_DESIGN_ID] + '</a>').run(link =>
+                link.addEventListener('click', () => legoQuery(fields[F_DESIGN_ID]))
+            )
+        );
     }
+
+
     row.appendChild(createCell(index, fields[F_DESC]));
     row.appendChild(createCell(index, fields[F_COLOR]));
     row.appendChild(createCell(index, fields[F_QUANTITY]));
@@ -107,9 +120,7 @@ function createRow(index, fields) {
     } else if (index !== 0 && fields[F_ID]) {
         row.appendChild(createButton(index, 'Buy', () => buy(fields[F_ID], fields[F_QUANTITY], index, false)));
     } else {
-        row.appendChild(createButton(index, 'Search', () => {
-            chrome.tabs.update({ url: 'https://www.lego.com/page/static/pick-a-brick?query=' + fields[F_DESC] });
-        }));
+        row.appendChild(createButton(index, 'Search', () => legoQuery(fields[F_DESC])));
     }
     return row;
 }
@@ -251,4 +262,17 @@ function csvToArray(text) {
         p = l;
     }
     return ret;
-};
+}
+
+if (typeof Object.prototype.let !== "function") {
+    Object.prototype.let = function(fn) {
+        return fn.call(this, this);
+    };
+}
+
+if (typeof Object.prototype.run !== "function") {
+    Object.prototype.run = function(fn) {
+        fn.call(this, this);
+        return this;
+    };
+}

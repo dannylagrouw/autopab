@@ -21,7 +21,7 @@ function clickPlus(iteration, times, sendResponse) {
             plusBtn.click();
         }
         sendResponse('bought ' + getQuantity().value);
-    } else if (iteration < 10) {
+    } else if (iteration < 20) {
         setTimeout(() => clickPlus(iteration + 1, times, sendResponse), 300);
     } else {
         sendResponse('no plus button');
