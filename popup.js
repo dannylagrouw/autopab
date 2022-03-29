@@ -2,6 +2,7 @@ console = chrome.extension.getBackgroundPage().console;
 let rowElements;
 let rows;
 let stopBuying = false;
+let statusFilter = {};
 
 const F_STATUS = 0;
 const F_BRICKLINK_ITEM_NO = 1;
@@ -26,6 +27,10 @@ function getDownloadMenu() {
 
 function getFileName() {
     return document.getElementById('fileName');
+}
+
+function getStatusFilter() {
+    return document.getElementById('statusFilter');
 }
 
 function setError(msg) {
@@ -94,7 +99,19 @@ function createRow(index, fields) {
     }
     row.dataset['index'] = index;
     if (index === 0) {
-        row.appendChild(createCell(index, 'Status'));
+        row.appendChild(createCell(index, 'Status').run(cell => {
+            cell.title = 'Click to filter';
+            cell.style.cursor = 'pointer';
+            cell.addEventListener('click', () => {
+                for (let status in statusFilter) {
+                    const checkbox = document.getElementById('status_' + status);
+                    if (checkbox) {
+                        checkbox.checked = statusFilter[status] ? '' : 'true';
+                    }
+                }
+                getStatusFilter().style.display = getStatusFilter().style.display === 'block' ? 'none' : 'block';
+            });
+        }));
         row.appendChild(createCell(index, fields[F_ID]));
         row.appendChild(createCell(index, fields[F_DESIGN_ID]));
     } else {
@@ -179,6 +196,12 @@ function initialize() {
         }
     });
 
+    chrome.storage.local.get(['statusFilter'], result => {
+        console.log('got statusFilter', result);
+        statusFilter = {...result.statusFilter};
+        applyFilter(result.statusFilter);
+    });
+
     fileElement.addEventListener("change", (event) => {
         console.log('change detected', event);
         const file = fileElement.files[0];
@@ -254,6 +277,48 @@ function displayRows(rows) {
     });
     partsElement.appendChild(table);
     document.getElementById('downloadWrapper').style.visibility = 'visible';
+
+    createStatusFilterPopup();
+}
+
+function createStatusFilterPopup() {
+    let statusCheckboxes = [];
+    const statuses = rows.reduce((prev, current) => prev.contains(current[F_STATUS]) ? prev : [...prev, current[F_STATUS]], []);
+    statuses.forEach(status => {
+        getStatusFilter().appendChild(
+            document.createElement('div').run(div => {
+                div.appendChild(
+                    document.createElement('input').run(checkbox => {
+                        checkbox.id = 'status_' + status;
+                        checkbox.dataset['status'] = status;
+                        checkbox.type = 'checkbox';
+                        checkbox.addEventListener('change', () => {
+                            statusFilter = statusCheckboxes.reduce((prev, cur) => {
+                                return {...prev, [cur.dataset['status']]: !cur.checked};
+                            }, {});
+                            chrome.storage.local.set({statusFilter});
+                            applyFilter(statusFilter);
+                        });
+                        statusCheckboxes.push(checkbox);
+                    })
+                );
+                div.appendChild(
+                    document.createElement('label').run(label => {
+                        label.htmlFor = 'status_' + status;
+                        label.innerText = status;
+                    })
+                );
+            })
+        )
+    });
+}
+
+function applyFilter(statusFilter) {
+    rows.forEach((row, index) => {
+        if (index > 0) {
+            rowElements[index].style.display = (statusFilter[row[F_STATUS]] ? 'none' : 'table-row');
+        }
+    });
 }
 
 function initStatusFields(rows) {
@@ -287,4 +352,10 @@ if (typeof Object.prototype.run !== "function") {
         fn.call(this, this);
         return this;
     };
+}
+
+if (typeof Array.prototype.contains !== 'function') {
+    Array.prototype.contains = function(elem) {
+        return this.indexOf(elem) !== -1;
+    }
 }

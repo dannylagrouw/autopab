@@ -93,11 +93,11 @@ td:nth-child(6) {
     width: 70px;
 }
 
-tr.even {
+tr:nth-child(even) {
     background-color: #eee;
 }
 
-tr.odd {
+tr:nth-child(odd):not(:nth-child(1)) {
     background-color: #ccc;
 }
 
@@ -133,4 +133,14 @@ tr.odd {
 
 #downloadMenu ul li a:hover {
     background-color: #98bcff;
+}
+
+#statusFilter {
+    display: none;
+    position: absolute;
+    background-color: white;
+    border: 1px solid black;
+    padding: 8px;
+    top: 135px;
+    box-shadow: -4px 4px 4px 0 rgba(0,0,0,0.5);
 }
