@@ -23,10 +23,14 @@
 
     async function clickPlus(iteration, times, sendResponse) {
         const plusBtn = getPlusBtn();
-        console.log('plus', times, 'times; plus button found=', !!plusBtn);
         if (plusBtn) {
+            console.log('plus', times, 'times; plus button found on iteration', iteration);
             for (let i = 0; i < times; i++) {
                 plusBtn.click();
+            }
+            await sleep(2000);
+            if (!getQuantity()) {
+                await sleep(2000);
             }
             sendResponse('bought ' + getQuantity().value);
         } else if (iteration < 20) {
@@ -40,8 +44,8 @@
     async function clickBuy(iteration, quantity, sendResponse) {
         const buyBtn = getBuyBtn();
         const plusBtn = getPlusBtn();
-        console.log('buying; buy button found=', !!buyBtn);
         if (buyBtn) {
+            console.log('buying; buy button found on iteration', iteration);
             buyBtn.click();
             if (quantity > 1) {
                 await sleep(300);

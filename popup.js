@@ -15,6 +15,7 @@
     const F_BRICKLINK_COLOR_ID = 5;
     const F_COLOR = 7;
     const F_QUANTITY = 9;
+    const STATUSES = ['new', 'ignored', 'bought', 'not found'];
 
     function getProgress() {
         return document.getElementById('progressWrapper');
@@ -143,6 +144,7 @@
             row.appendChild(createButton(index, 'Buy All', () => {
                 getProgress().style.visibility = 'visible';
                 getProgressBar().style.width = '0';
+                resetFilter();
                 buy(rows[1][F_ID], rows[1][F_QUANTITY], 1, true);
             }));
         } else if (index !== 0 && fields[F_ID]) {
@@ -206,7 +208,7 @@
             console.log('got statusFilter', result);
             if (result.statusFilter) {
                 statusFilter = {...result.statusFilter};
-                applyFilter(result.statusFilter);
+                applyFilter();
             }
         });
 
@@ -290,8 +292,8 @@
 
     function createStatusFilterPopup() {
         let statusCheckboxes = [];
-        const statuses = rows.reduce((prev, current) => prev.contains(current[F_STATUS]) ? prev : [...prev, current[F_STATUS]], []);
-        statuses.forEach(status => {
+        getStatusFilter().innerHTML = '';
+        STATUSES.forEach(status => {
             getStatusFilter().appendChild(
                 document.createElement('div').run(div => {
                     div.appendChild(
@@ -304,7 +306,7 @@
                                     return {...prev, [cur.dataset['status']]: !cur.checked};
                                 }, {});
                                 chrome.storage.local.set({statusFilter});
-                                applyFilter(statusFilter);
+                                applyFilter();
                             });
                             statusCheckboxes.push(checkbox);
                         })
@@ -320,12 +322,21 @@
         });
     }
 
-    function applyFilter(statusFilter) {
+    function trimStatus(status) {
+        return status.startsWith('bought') ? 'bought' : status;
+    }
+
+    function applyFilter() {
         rows.forEach((row, index) => {
             if (index > 0) {
-                rowElements[index].style.display = (statusFilter[row[F_STATUS]] ? 'none' : 'table-row');
+                rowElements[index].style.display = (statusFilter[trimStatus(row[F_STATUS])] ? 'none' : 'table-row');
             }
         });
+    }
+
+    function resetFilter() {
+        statusFilter = STATUSES.reduce((prev, cur) => ({...prev, [cur]: false}), {});
+        applyFilter();
     }
 
     function initStatusFields(rows) {
