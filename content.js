@@ -1,6 +1,4 @@
 (function () {
-    console.log('hello from content.js');
-
     function getQuantity() {
         return document.querySelector('input[data-test=pab-item-quantity]');
     }
@@ -17,42 +15,49 @@
         return document.querySelector('a[data-test=header-account-cta]');
     }
 
-    function clickPlus(iteration, times, sendResponse) {
+    function getNoResults() {
+        return document.querySelector('div[data-test=no-search-results]')
+    }
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    async function clickPlus(iteration, times, sendResponse) {
         const plusBtn = getPlusBtn();
+        console.log('plus', times, 'times; plus button found=', !!plusBtn);
         if (plusBtn) {
             for (let i = 0; i < times; i++) {
                 plusBtn.click();
             }
             sendResponse('bought ' + getQuantity().value);
         } else if (iteration < 20) {
-            setTimeout(() => clickPlus(iteration + 1, times, sendResponse), 300);
+            await sleep(300);
+            await clickPlus(iteration + 1, times, sendResponse);
         } else {
             sendResponse('no plus button');
         }
     }
 
-    function clickBuy(iteration, quantity, sendResponse) {
-        console.log('buying');
+    async function clickBuy(iteration, quantity, sendResponse) {
         const buyBtn = getBuyBtn();
         const plusBtn = getPlusBtn();
-        console.log('buying', buyBtn);
+        console.log('buying; buy button found=', !!buyBtn);
         if (buyBtn) {
             buyBtn.click();
             if (quantity > 1) {
-                setTimeout(() => {
-                    clickPlus(1, quantity - 1, sendResponse);
-                }, 300);
+                await sleep(300);
+                await clickPlus(1, quantity - 1, sendResponse);
             } else if (getQuantity()) {
                 sendResponse('bought ' + getQuantity().value);
             } else {
                 sendResponse('bought 1');
             }
         } else if (plusBtn) {
-            clickPlus(1, quantity, sendResponse);
-        } else if (iteration < 10) {
-            setTimeout(() => clickBuy(iteration + 1, quantity, sendResponse), 300);
-        } else {
+            await clickPlus(1, quantity, sendResponse);
+        } else if (getNoResults() || iteration >= 20) {
             sendResponse('not found');
+        } else {
+            await sleep(300);
+            await clickBuy(iteration + 1, quantity, sendResponse);
         }
     }
 
@@ -60,6 +65,7 @@
         console.log('got msg', msg);
         if (msg.text === 'buy') {
             clickBuy(1, msg.quantity, function (content) {
+                console.log('>>sendResponse', content);
                 sendResponse({content, index: msg.index, buyAll: msg.buyAll})
             });
         } else if (msg.text === 'loggedin') {
