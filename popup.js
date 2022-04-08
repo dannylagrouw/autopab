@@ -5,7 +5,6 @@
     let rowElements;
     let rows;
     let stopBuying = false;
-    let statusFilter = {};
 
     const F_STATUS = 0;
     const F_BRICKLINK_ITEM_NO = 1;
@@ -31,10 +30,6 @@
 
     function getFileName() {
         return document.getElementById('fileName');
-    }
-
-    function getStatusFilter() {
-        return document.getElementById('statusFilter');
     }
 
     function getFileUpload() {
@@ -107,19 +102,7 @@
         }
         row.dataset['index'] = index;
         if (index === 0) {
-            row.appendChild(createCell(index, 'Status').run(cell => {
-                cell.title = 'Click to filter';
-                cell.style.cursor = 'pointer';
-                cell.addEventListener('click', () => {
-                    for (let status in statusFilter) {
-                        const checkbox = document.getElementById('status_' + status);
-                        if (checkbox) {
-                            checkbox.checked = statusFilter[status] ? '' : 'true';
-                        }
-                    }
-                    getStatusFilter().style.display = getStatusFilter().style.display === 'block' ? 'none' : 'block';
-                });
-            }));
+            row.appendChild(createCell(index, 'Status'));
             row.appendChild(createCell(index, fields[F_ID]));
             row.appendChild(createCell(index, fields[F_DESIGN_ID]));
         } else {
@@ -204,14 +187,6 @@
             }
         });
 
-        chrome.storage.local.get(['statusFilter'], result => {
-            console.log('got statusFilter', result);
-            if (result.statusFilter) {
-                statusFilter = {...result.statusFilter};
-                applyFilter();
-            }
-        });
-
         getFileUpload().addEventListener("change", (event) => {
             console.log('change detected', event);
             const file = getFileUpload().files[0];
@@ -286,57 +261,6 @@
         });
         partsElement.appendChild(table);
         document.getElementById('downloadWrapper').style.visibility = 'visible';
-
-        createStatusFilterPopup();
-    }
-
-    function createStatusFilterPopup() {
-        let statusCheckboxes = [];
-        getStatusFilter().innerHTML = '';
-        STATUSES.forEach(status => {
-            getStatusFilter().appendChild(
-                document.createElement('div').run(div => {
-                    div.appendChild(
-                        document.createElement('input').run(checkbox => {
-                            checkbox.id = 'status_' + status;
-                            checkbox.dataset['status'] = status;
-                            checkbox.type = 'checkbox';
-                            checkbox.addEventListener('change', () => {
-                                statusFilter = statusCheckboxes.reduce((prev, cur) => {
-                                    return {...prev, [cur.dataset['status']]: !cur.checked};
-                                }, {});
-                                chrome.storage.local.set({statusFilter});
-                                applyFilter();
-                            });
-                            statusCheckboxes.push(checkbox);
-                        })
-                    );
-                    div.appendChild(
-                        document.createElement('label').run(label => {
-                            label.htmlFor = 'status_' + status;
-                            label.innerText = status;
-                        })
-                    );
-                })
-            )
-        });
-    }
-
-    function trimStatus(status) {
-        return status.startsWith('bought') ? 'bought' : status;
-    }
-
-    function applyFilter() {
-        rows.forEach((row, index) => {
-            if (index > 0) {
-                rowElements[index].style.display = (statusFilter[trimStatus(row[F_STATUS])] ? 'none' : 'table-row');
-            }
-        });
-    }
-
-    function resetFilter() {
-        statusFilter = STATUSES.reduce((prev, cur) => ({...prev, [cur]: false}), {});
-        applyFilter();
     }
 
     function initStatusFields(rows) {
