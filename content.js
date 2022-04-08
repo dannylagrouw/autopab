@@ -33,7 +33,7 @@
                 await sleep(2000);
             }
             sendResponse('bought ' + getQuantity().value);
-        } else if (iteration < 20) {
+        } else if (iteration < 40) {
             await sleep(300);
             await clickPlus(iteration + 1, times, sendResponse);
         } else {
